@@ -14,8 +14,10 @@ export default class GameOfLife {
     this.cells = []
     this.alive = []
     this.approved = []
+    this.needToggle = []
 
     this.initCells()
+    this.render()
   }
 
   initCells () {
@@ -51,6 +53,8 @@ export default class GameOfLife {
   }
 
   nextStep () {
+    this.approved = []
+
     for (const cell of this.alive) {
       this.checkCell(cell.x, cell.y)
       this.checkCell(cell.x - 1, cell.y -1)
@@ -63,6 +67,8 @@ export default class GameOfLife {
       this.checkCell(cell.x + 1, cell.y + 1)
     }
 
+    this.needToggle.forEach(c => c.toggleAlive())
+    this.needToggle = []
     this.render()
   }
 
@@ -71,6 +77,8 @@ export default class GameOfLife {
   }
 
   checkIsCellAlive (x, y) {
+      const isAlive = this.getCell(x, y).isAlive
+
       const length = [
         this.getCell(x - 1, y -1).isAlive,
         this.getCell(x, y -1).isAlive,
@@ -82,7 +90,11 @@ export default class GameOfLife {
         this.getCell(x + 1, y + 1).isAlive,
       ].filter(c => !!c).length
 
-      return length > 1 && length < 4
+      if (x === 50 && y === 41) {
+        console.log(length)
+      }
+
+      return isAlive ? length > 1 && length < 4 : length === 3
   }
 
   checkCell (x, y) {
@@ -93,7 +105,9 @@ export default class GameOfLife {
       const isAlive = this.checkIsCellAlive(x, y)
       
       const cell = this.cells[this.y * x + y]
-      cell.isAlive = isAlive
+      if (isAlive !== cell.isAlive && !this.needToggle.find(c => c.x === cell.x && c.y === cell.y)) {
+        this.needToggle.push(cell)
+      }
   }
   
   render () {

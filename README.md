@@ -1,6 +1,6 @@
 # Game of life
 
-### 18:12 PS. Нашел ошибку в поведении
+![Demo gif](https://github.com/proorder/game-of-life/blob/master/demo.gif)
 
 ```sh
 npm install && npm run dev
