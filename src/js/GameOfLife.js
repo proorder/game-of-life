@@ -1,7 +1,7 @@
 import Cell from './Cell'
 
 export default class GameOfLife {
-  constructor (canvas, ctx, x = 100, y = 50) {
+  constructor (canvas, ctx, x = 50, y = 40) {
     if (x < 10 || y < 10) {
       throw new Error('X and Y should be more than 10.')
     }
@@ -10,11 +10,40 @@ export default class GameOfLife {
     this.ctx = ctx
     this.x = x
     this.y = y
-    this.r = 5
+    this.r = 15
+    this.delay = 1000
     this.cells = []
     this.alive = []
     this.approved = []
     this.needToggle = []
+    this.isRunning = false
+    this.milliseconds = null
+
+    function setButtonActive (active) {
+      if (!active) {
+        document.querySelector(this.s).setAttribute('disabled', true) 
+      } else {
+        document.querySelector(this.s).removeAttribute('disabled') 
+      }
+    }
+
+    this.buttons = {
+      run: {
+        s: '.run',
+        setActive: setButtonActive
+      },
+      stop: {
+        s: '.stop',
+        setActive: setButtonActive
+      },
+      step: {
+        s: '.step',
+        setActive: setButtonActive
+      },
+    }
+
+    this.canvas.width = this.x * (this.r + 1) + 1
+    this.canvas.height = this.y * (this.r + 1) + 1
 
     this.initCells()
     this.render()
@@ -30,6 +59,35 @@ export default class GameOfLife {
     }
   }
 
+  run (continious = false) {
+    if (!continious) {
+      this.isRunning = true
+      this.nextStep()
+      this.milliseconds = performance.now()
+      this.buttons.run.setActive(false)
+      this.buttons.stop.setActive(true)
+      this.buttons.step.setActive(false)
+    }
+
+    if (!this.isRunning) {
+      return
+    }
+
+    if (performance.now() - this.milliseconds > 950) {
+      this.milliseconds = performance.now()
+      this.nextStep()
+    }
+
+    requestAnimationFrame(this.run.bind(this, true))
+  }
+  
+  stop () {
+    this.isRunning = false
+    this.buttons.run.setActive(true)
+    this.buttons.stop.setActive(false)
+    this.buttons.step.setActive(true)
+  }
+
   addAlive (cell) {
     if (this.alive.find(c => cell.x === c.x && cell.y === c.y)) {
       return
@@ -42,12 +100,13 @@ export default class GameOfLife {
   }
 
   onClick (event) {
+    this.stop()
     const { x, y } = event.target.getBoundingClientRect()
     this.findCell(event.clientX - x, event.clientY - y)
   }
 
   findCell (x, y) {
-    const i = this.y * Math.round(x / (this.r + 1)) + Math.round(y / (this.r + 1))
+    const i = this.y * Math.floor(x / (this.r + 1)) + Math.floor(y / (this.r + 1))
     this.cells[i].toggleAlive()
     this.render()
   }
@@ -73,7 +132,19 @@ export default class GameOfLife {
   }
 
   getCell (x, y) {
-    return this.cells[this.y * x + y]
+    const relX = x > this.x - 1
+      ? x - this.x
+      : x < 0
+        ? this.x + x
+        : x
+    
+    const relY = y > this.y - 1
+      ? y - this.y
+      : y < 0
+        ? this.y + y
+        : y
+
+    return this.cells[this.y * relX + relY]
   }
 
   checkIsCellAlive (x, y) {
@@ -90,10 +161,6 @@ export default class GameOfLife {
         this.getCell(x + 1, y + 1).isAlive,
       ].filter(c => !!c).length
 
-      if (x === 50 && y === 41) {
-        console.log(length)
-      }
-
       return isAlive ? length > 1 && length < 4 : length === 3
   }
 
@@ -104,7 +171,7 @@ export default class GameOfLife {
 
       const isAlive = this.checkIsCellAlive(x, y)
       
-      const cell = this.cells[this.y * x + y]
+      const cell = this.getCell(x, y)
       if (isAlive !== cell.isAlive && !this.needToggle.find(c => c.x === cell.x && c.y === cell.y)) {
         this.needToggle.push(cell)
       }
